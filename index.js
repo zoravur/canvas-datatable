@@ -4,10 +4,10 @@ function drawTable(ctx, x, y, n_rows, n_cols, cellWidth, cellHeight) {
   // ctx.lineWidth = 0.8;
   // console.log(this.scaling);
   // console.log(ctx.lineWidth);
-
+  
   x = x + 0.5;
   y = y + 0.5;
-
+  
   // Draw vertical lines
   for (let i = 0; i <= n_cols; i++) {
     ctx.beginPath();
@@ -15,7 +15,7 @@ function drawTable(ctx, x, y, n_rows, n_cols, cellWidth, cellHeight) {
     ctx.lineTo(x + i * cellWidth, y + n_rows * cellHeight);
     ctx.stroke();
   }
-
+  
   // Draw horizontal lines
   for (let i = 0; i <= n_rows; i++) {
     ctx.beginPath();
@@ -27,6 +27,9 @@ function drawTable(ctx, x, y, n_rows, n_cols, cellWidth, cellHeight) {
 
 // Define the Web Component
 class DataTable extends HTMLElement {
+  static recognizedAttributes = ['columns', 'readonly', 'ignore-dpr', 'default-dpr'];
+  static observedAttributes = [];
+
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -73,32 +76,19 @@ class DataTable extends HTMLElement {
 
     console.log(window.devicePixelRatio);
     const scaling = (window.devicePixelRatio || 1);
-    // this.scaling = scaling;
-    // const scaling = 1;
 
-    console.log(this.getAttribute('width'));
-
+    this.setDefaultDpr();
+  
     this.canvas = this.shadowRoot.getElementById("canvas");
-    const canvas = this.canvas;
-    canvas.width = Number(this.getAttribute('width')) * scaling;
-    canvas.height = Number(this.getAttribute('height')) * scaling;
-    canvas.style.width = canvas.width / scaling + "px";
-    canvas.style.height = canvas.height / scaling + "px";
+    this._scaleCanvas();
 
-    window.addEventListener('resize', (event) => {
-      console.log(window.devicePixelRatio);
-      this.scaleCanvas();
-    });
 
-    // ctx.scale(scaling, scaling);
-
-    // ctx.imageSmoothingEnabled = false;
-
+    window.addEventListener('resize', this._scaleCanvas.bind(this));
 
     this.render();
   }
 
-  scaleCanvas() {
+  _scaleCanvas() {
     this.canvas = this.shadowRoot.getElementById("canvas");
 
     const scaling = (window.devicePixelRatio || 1);
@@ -108,16 +98,17 @@ class DataTable extends HTMLElement {
     canvas.style.width = canvas.width / scaling + "px";
     canvas.style.height = canvas.height / scaling + "px";
 
-    console.log(Math.round((window.outerWidth / window.innerWidth) * 100))
-
     const ctx = canvas.getContext("2d");
-    ctx.scale(scaling / this.defaultPixelRatio, scaling / this.defaultPixelRatio);
+
+    if (!this.hasAttribute('ignore-dpr')) {
+      ctx.scale(scaling / this.defaultPixelRatio, scaling / this.defaultPixelRatio);
+    }
 
     this.render();
   }
 
-  setDefaultPixelRatio() {
-    this.defaultPixelRatio = window.devicePixelRatio;
+  setDefaultDpr() {
+    this.defaultPixelRatio = this.getAttribute("default-dpr") || window.devicePixelRatio;
   }
 
   render() {
@@ -130,6 +121,7 @@ class DataTable extends HTMLElement {
 
     drawTable(ctx, 50, 50, 4, 3, 60, 40);
   }
+
 }
 
 customElements.define("data-table", DataTable);
