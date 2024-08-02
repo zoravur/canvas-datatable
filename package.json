@@ -11,5 +11,10 @@
     "table"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "esbuild-serve": "^1.0.1",
+    "http-server": "^14.1.1"
+  }
 }
