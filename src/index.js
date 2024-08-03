@@ -277,7 +277,7 @@ class DataTable extends HTMLElement {
 
     ctx.fillStyle = "white";
     const {x_coords, headerHeight} = this.cellInfo;
-    ctx.fillRect(0, 0, x_coords[x_coords.length-1], headerHeight);
+    ctx.fillRect(-0.5, -0.5, x_coords[x_coords.length-1], headerHeight);
 
     const headers = this.headers;
 
