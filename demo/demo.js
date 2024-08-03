@@ -91,7 +91,7 @@ async function main() {
 
   console.log(dataTable);
 
-  dataTable.columns = dataset.headers;
+  dataTable.headers = dataset.headers;
   dataTable.rows = dataset.data;
   dataTable.config = {
     widths: {
@@ -107,11 +107,17 @@ async function main() {
       'Fare': 100,
       'Cabin': 200,
       'Embarked': 100
-    }
+    },
+    headerHeight: 40,
+    rowHeight: 29,
   }
 
 
   dataTable.render();
+  setTimeout(() => {
+
+    // dataTable.createHtml();
+  }, 500)
   // setTimeout(() => {
   //   dataTable.render();
   // }, 1000)

@@ -1,0 +1,6 @@
+BUGS
+
+Zoom bug -- changing zoom causes rendering to fail
+Mouse detection -- line detection is almost symmetrical around grid lines but not quite
+Kind of becoming a mess -- refactor
+Header doesn't extend to top of page -- some text peeks out above the header
