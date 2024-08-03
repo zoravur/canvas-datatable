@@ -6,22 +6,12 @@ async function loadAndParseDataset(url) {
     }
     const csvText = await response.text();
     
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) {
+    const { headers, data } = parseCSV(csvText);
+    if (data.length === 0) {
       throw new Error('CSV file is empty or contains only headers');
     }
-    
-    const headers = rows[0];
-    
-    const parsedData = rows.slice(1).map(row => {
-      return headers.reduce((obj, header, index) => {
-        const value = row[index];
-        obj[header] = parseValue(value);
-        return obj;
-      }, {});
-    });
 
-    return { headers, data: parsedData };
+    return { headers, data };
   } catch (error) {
     console.error('Error loading or parsing the dataset:', error);
     throw error;
@@ -46,26 +36,38 @@ function parseCSV(text) {
         inQuotes = !inQuotes;
       }
     } else if (char === ',' && !inQuotes) {
-      row.push(currentValue.trim());
+      row.push(currentValue);
       currentValue = '';
-    } else if (char === '\n' && !inQuotes) {
-      row.push(currentValue.trim());
-      rows.push(row);
-      row = [];
-      currentValue = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++; // Skip the \n in \r\n
+      }
+      if (currentValue !== '' || row.length > 0) {
+        row.push(currentValue);
+        rows.push(row);
+        row = [];
+        currentValue = '';
+      }
     } else {
       currentValue += char;
     }
   }
 
-  if (currentValue) {
-    row.push(currentValue.trim());
-  }
-  if (row.length > 0) {
+  if (currentValue !== '' || row.length > 0) {
+    row.push(currentValue);
     rows.push(row);
   }
 
-  return rows;
+  const headers = rows[0].map(header => header.trim());
+  const data = rows.slice(1).map(row => {
+    return headers.reduce((obj, header, index) => {
+      const value = row[index] ? row[index].trim() : '';
+      obj[header] = parseValue(value);
+      return obj;
+    }, {});
+  });
+
+  return { headers, data };
 }
 
 function parseValue(value) {
@@ -109,20 +111,19 @@ async function main() {
       'Embarked': 100
     },
     headerHeight: 40,
-    rowHeight: 29,
+    rowHeight: 30,
     fontSize: 16,
     maxColWidth: 1000,
+    rowColors: {
+      'Survived': {
+        '0': 'pink',
+        '1': 'lightgreen'
+      }
+    }
   }
 
 
   dataTable.render();
-  setTimeout(() => {
-
-    // dataTable.createHtml();
-  }, 500)
-  // setTimeout(() => {
-  //   dataTable.render();
-  // }, 1000)
 
   console.log('Dataset loaded and displayed!');
 }
