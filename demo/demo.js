@@ -110,6 +110,8 @@ async function main() {
     },
     headerHeight: 40,
     rowHeight: 29,
+    fontSize: 16,
+    maxColWidth: 1000,
   }
 
 

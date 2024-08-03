@@ -72,8 +72,7 @@ class DataTable extends HTMLElement {
         </style>
 
         <div class="data-table-root">
-          <div class="grid-container">
-          </div>
+          <!--<div class="grid-container"></div>-->
           <canvas id="canvas"></canvas>
         </div>
     `;
@@ -92,18 +91,35 @@ class DataTable extends HTMLElement {
 
     window.addEventListener('resize', this._scaleCanvas.bind(this));
 
-    this.addEventListener("click", (evt) => {
-      console.log("DataTable clicked", evt);
-    });
+    // DEBUG CODE
+    // this.canvas.addEventListener("click", (evt) => {
+    //   const [x, y] = [evt.offsetX, evt.offsetY];
 
-    this.addEventListener("wheel", this._handleWheelEvent.bind(this));
+    //   // console.log(this._screenToCanvasCoords(x, y));
+    //   const {canvX, canvY} = this._screenToCanvasCoords(x, y);
 
-    this.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    //   const infoObject = {
+    //     x,
+    //     y,
+    //     canvX,
+    //     canvY,
+    //   }
+      
+    //   console.log(infoObject);
+
+    //   const ctx = this.canvas.getContext("2d");
+    //   ctx.fillStyle = "green";
+    //   ctx.fillRect(canvX, canvY, 10, 10);
+    // });
+
+    this.canvas.addEventListener("wheel", this._handleWheelEvent.bind(this));
+
+    this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
   }
 
   
   _handleResizeStart = (index) => (e) => {
-    this._initialResizeX = this._getMouseOffset(e).x;
+    this._initialResizeX = this._screenToCanvasCoords(e.offsetX, e.offsetY).canvX;
     this._initialResizeWidth = this.cellInfo.widths[index];
     this._initialResizeIndex = index;
     this._resizing = true;
@@ -113,12 +129,12 @@ class DataTable extends HTMLElement {
     if (!this._resizing) {
       return;
     }
-    const x_coord = this._getMouseOffset(e).x;
+    const x_coord = this._screenToCanvasCoords(e.offsetX, e.offsetY).canvX;
     
     const indexHeader = this.headers[this._initialResizeIndex];
 
     this.config.widths[indexHeader] = 
-      clamp(this._initialResizeWidth + x_coord - this._initialResizeX, 5, 500);
+      clamp(this._initialResizeWidth + x_coord - this._initialResizeX, 5, this.config.maxColWidth);
     // const {widths } = this.cellInfo;
 
     // widths[i] = 
@@ -134,17 +150,20 @@ class DataTable extends HTMLElement {
     });
   }
 
-  _getMouseOffset(evt) {
-    const x = (evt.offsetX + this.offsetX - 0.5) * this.scaling; 
-    const y = (evt.offsetY - 0.5) * this.scaling
 
-    return {x, y};
-  }
+  // _getMouseOffset(evt) {
+  //   const x = (evt.offsetX + this.offsetX - 0.5) * this.scaling; 
+  //   const y = (evt.offsetY - 0.5) * this.scaling
+
+  //   return {x, y};
+  // }
 
   _handleMouseMove(evt) {
     const {x_coords, headerHeight} = this.cellInfo;
 
-    const {x, y} = this._getMouseOffset(evt);
+    const {canvX:x, canvY:y} = this._screenToCanvasCoords(evt.offsetX, evt.offsetY);
+
+    // console.log(`x: ${x}, x_coords: ${x_coords}`);
 
     let showScroll = false;
     let i;
@@ -173,6 +192,10 @@ class DataTable extends HTMLElement {
 
 
   _handleWheelEvent(evt) {
+    // This is so that the window scrolls like regular html when the user is at the top or bottom of the table
+    const oldOffsetX = this.offsetX;
+    const oldOffsetY = this.offsetY;
+
     if (this.offsetX === undefined) {
       this.offsetX = 0;
     }
@@ -191,6 +214,12 @@ class DataTable extends HTMLElement {
     this.offsetX = clamp(this.offsetX, 0, this.cellInfo.x_coords[this.cellInfo.x_coords.length - 1] - this.canvas.width);
     this.offsetY = clamp(this.offsetY, 0, this.cellInfo.y_coords[this.cellInfo.y_coords.length - 1] - this.canvas.height);
     this._scaleCanvas();
+
+    // console.log(`offsetX: ${this.offsetX}, offsetY: ${this.offsetY}, oldOffsetX: ${oldOffsetX}, oldOffsetY: ${oldOffsetY}`);
+
+    if (oldOffsetX !== this.offsetX || oldOffsetY !== this.offsetY) {
+      evt.preventDefault();
+    }
   }
 
   _scaleCanvas() {
@@ -201,6 +230,7 @@ class DataTable extends HTMLElement {
 
 
     this.scaling = (window.devicePixelRatio || 1);
+    console.log(this.scaling);
     const scaling = this.scaling;
     const canvas = this.canvas;
     canvas.width = Number(this.getAttribute('width')) * scaling;
@@ -214,16 +244,20 @@ class DataTable extends HTMLElement {
 
 
     const ctx = canvas.getContext("2d");
+    ctx.resetTransform();
+    if (!this.hasAttribute('ignore-dpr')) {
+      ctx.scale(scaling / this.defaultPixelRatio, scaling / this.defaultPixelRatio);
+    }
+
     ctx.translate(0.5, 0.5);
     ctx.translate(-this.offsetX, -this.offsetY);
 
     // console.log(`offsetX: ${this.offsetX}, offsetY: ${this.offsetY}`);
 
-    if (!this.hasAttribute('ignore-dpr')) {
-      ctx.scale(scaling / this.defaultPixelRatio, scaling / this.defaultPixelRatio);
-    }
 
     this.render();
+
+    this._screenToCanvasCoords(0, 0);
   }
 
   setDefaultDpr() {
@@ -273,11 +307,24 @@ class DataTable extends HTMLElement {
   _drawHeaders() {
     const canvas = this.canvas;
     const ctx = canvas.getContext("2d");
+
+    // ctx.save();
+
+    // ctx.resetTransform();
+
+    // const {canvX: x, canvY: y} = this._screenToCanvasCoords(0, 0);
+    // const {canvY: canvasHeaderEnd} = this._screenToCanvasCoords(0, this.config.headerHeight);
+
     ctx.translate(0, this.offsetY);
+
 
     ctx.fillStyle = "white";
     const {x_coords, headerHeight} = this.cellInfo;
     ctx.fillRect(-0.5, -0.5, x_coords[x_coords.length-1], headerHeight);
+
+    // ctx.fillStyle = "pink";
+    // ctx.fillRect(this.offsetX, this.offsetY, 100, 100);
+
 
     const headers = this.headers;
 
@@ -286,7 +333,6 @@ class DataTable extends HTMLElement {
     }
 
     ctx.strokeStyle = "lightgray";
-
     for (let i = 0; i < x_coords.length; i++) {
       ctx.beginPath();
       ctx.moveTo(x_coords[i], 0);
@@ -377,7 +423,7 @@ class DataTable extends HTMLElement {
     const y = y_coords[i];
 
     ctx.fillStyle = "black";
-    ctx.font = `${bold ? 'bold ': ''}12px Arial`;
+    ctx.font = `${bold ? 'bold ': ''}${this.config.fontSize}px Arial`;
     // console.log(ctx.font);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -388,28 +434,46 @@ class DataTable extends HTMLElement {
     
   }
 
-  createHtml() {
-    const gridContainer = this.shadowRoot.querySelector(".grid-container");
-    console.log(`gridContainer: ${gridContainer}`);
+  _screenToCanvasCoords(x, y) {
+    const ctx = this.canvas.getContext("2d");
+    // console.log(`ctx.getTransform(): ${ctx.getTransform()}`);
 
-    const {widths, heights, x_coords, y_coords, headerHeight} = this.cellInfo;
+    // console.log(`offsetX: ${this.offsetX}, offsetY: ${this.offsetY}`);
 
+    // console.log(this.scaling);
 
+    // default
 
-    for (let j = 0; j < this.n_cols; j++) {
-      const handle = document.createElement("div");
-      handle.style.backgroundColor = "red";
-      handle.style.position = "absolute";
-      handle.style.width = "10px";
-      handle.style.height = `${headerHeight / this.scaling}px`;
-      handle.style.left = `${x_coords[j] / this.scaling}px`;
-      handle.style.top = "0px";
-      handle.style.transform = "translateX(-50%)";
-      handle.style.cursor = 'ew-resize';
-
-      gridContainer.appendChild(handle);
+    return {
+      // canvX: (x),
+      // canvY: (y),
+      canvX: (x) * this.defaultPixelRatio -0.5+this.offsetX,
+      canvY: (y) * this.defaultPixelRatio -0.5+this.offsetY,
     }
   }
+
+  // createHtml() {
+  //   const gridContainer = this.shadowRoot.querySelector(".grid-container");
+  //   console.log(`gridContainer: ${gridContainer}`);
+
+  //   const {widths, heights, x_coords, y_coords, headerHeight} = this.cellInfo;
+
+
+
+  //   for (let j = 0; j < this.n_cols; j++) {
+  //     const handle = document.createElement("div");
+  //     handle.style.backgroundColor = "red";
+  //     handle.style.position = "absolute";
+  //     handle.style.width = "10px";
+  //     handle.style.height = `${headerHeight / this.scaling}px`;
+  //     handle.style.left = `${x_coords[j] / this.scaling}px`;
+  //     handle.style.top = "0px";
+  //     handle.style.transform = "translateX(-50%)";
+  //     handle.style.cursor = 'ew-resize';
+
+  //     gridContainer.appendChild(handle);
+  //   }
+  // }
 }
 
 customElements.define("data-table", DataTable);
