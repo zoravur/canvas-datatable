@@ -2,6 +2,20 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function getType(variable) {
+  if (variable === null) {
+    return "null";
+  } else if (variable === undefined) {
+    return 'undefined';
+  } else if (Array.isArray(variable)) {
+    return "array";
+  } else if (typeof variable === "object") {
+    return "object";
+  } else {
+    return "neither";
+  }
+}
+
 // Define the Web Component
 class DataTable extends HTMLElement {
   static recognizedAttributes = [
@@ -16,14 +30,6 @@ class DataTable extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
   }
-
-  // get headers() {
-  //   const columns = this.columns;
-
-  //   if (!columns) {
-  //     return [];
-  //   }
-  // }
 
   get readonly() {
     return this.hasAttribute("readonly");
@@ -141,12 +147,8 @@ class DataTable extends HTMLElement {
       5,
       this.config.maxColWidth
     );
-    // const {widths } = this.cellInfo;
-
-    // widths[i] =
 
     this._setCellInfo();
-    // this._moveOrigin(0, 0);
 
     this.render();
   }
@@ -179,14 +181,16 @@ class DataTable extends HTMLElement {
     if (showScroll) {
       this.style.cursor = "ew-resize";
       this.onmousedown = this._handleResizeStart(i - 1).bind(this);
-      this.onmousemove = this._handleResize.bind(this);
-      this.onmouseup = () => {
+      window.onmousemove = this._handleResize.bind(this);
+      window.onmouseup = () => {
         this._resizing = false;
+        this._moveOrigin(0,0);
+        this.render();
       };
     } else {
       this.style.cursor = "default";
       this.onmousedown = null;
-      this.onmouseup = null;
+      window.onmouseup = null;
     }
   }
 
@@ -501,10 +505,21 @@ class DataTable extends HTMLElement {
   }
 
   getRowColors(row, i) {
-    const key = Object.keys(this.config.rowColors)[0];
-    const color = this.config.rowColors[key][row[key]];
-    // console.log(color);
-    return color;
+    const type = getType(this.config.rowColors);
+    if (type === 'null' || type === 'undefined') {
+      return "white";
+    } else if (type === 'array') {
+      return this.config.rowColors[i % this.config.rowColors.length];
+    } else if (type === 'object') {
+      const key = Object.keys(this.config.rowColors)[0];
+      if (!this.config.rowColors[key][row[key]]) {
+        return "white";
+      }
+      const color = this.config.rowColors[key][row[key]];
+      return color;
+    }
+
+    
 
     // return i % 2 === 0 ? "white" : "whitesmoke";
   }

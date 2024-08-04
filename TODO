@@ -1,8 +1,6 @@
 BUGS
 
-Mouse detection -- line detection is almost symmetrical around grid lines but not quite
 Kind of becoming a mess -- refactor
-Event handling for column resizing is also a little bit broken
 
 FIXED
 
@@ -10,3 +8,5 @@ FIXED
 [x] Zoom bug -- changing zoom causes rendering to fail
     - Always SCALE before TRANSLATING. (you want an affine transformation in terms of the offset + scale values)
     - Use cursor to 
+[x] Mouse detection -- line detection is almost symmetrical around grid lines but not quite
+[x] Event handling for column resizing is also a little bit broken
