@@ -1,6 +1,7 @@
 BUGS
 
 Kind of becoming a mess -- refactor
+Currently widths are set by modifying this.config -- this.config should be readonly though
 
 FIXED
 
