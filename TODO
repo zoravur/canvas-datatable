@@ -1,6 +1,8 @@
 BUGS
 
 Kind of becoming a mess -- refactor
+setCellInfo isn't always called before render -- this is because it's possible that only some fields are set in _cellInfo,
+so it's not fully initialized. Ensure setCellInfo is called before first render.
 
 FIXED
 

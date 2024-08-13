@@ -1,14 +1,16 @@
 {
-  "name": "canvas-datatable",
-  "version": "1.0.0",
-  "description": "Datatable based on canvas for better performance",
+  "name": "wc-datagrid",
+  "version": "0.1.0",
+  "description": "Canvas based data grid web component.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "datatable",
-    "table"
+    "table",
+    "web-component",
+    "canvas"
   ],
   "author": "",
   "license": "ISC",
