@@ -160,8 +160,79 @@ class DataTable extends HTMLElement {
   }
 
   _handleMouseMove(evt) {
+    if (this._isDragging) return;
+    this._isDragging = false;
+
     const { x_coords, headerHeight } = this.cellInfo;
 
+    /******************* SCROLL BAR CODE ****************************/
+
+    const { canvX: x_abs, canvY: y_abs } = this._screenToCanvasCoordsAbsolute(
+      evt.offsetX,
+      evt.offsetY
+    );
+    // let isDragging = false;
+    let startY;
+    let startOffsetY;
+
+    const { contentHeight } = this.getContentDimensions();
+
+    const _handleVertScrollStart = (evt) => {
+      const canvasHeight = this.canvas.height;
+      const { canvY: mouseY } = this._screenToCanvasCoordsAbsolute(
+        evt.offsetX,
+        evt.offsetY
+      );
+      if (
+        mouseY >= (this.offsetY / contentHeight) * canvasHeight &&
+        mouseY <=
+          (this.offsetY / contentHeight) * canvasHeight +
+            this.getScrollbarHeight()
+      ) {
+        console.log("within range");
+        this._isDragging = true;
+        startY = evt.screenY * this.scaling;
+        startOffsetY = this.offsetY;
+      }
+    };
+
+    const _handleVertScroll = (evt) => {
+      if (this._isDragging) {
+        const canvasHeight = this.canvas.height;
+        const mouseY = evt.screenY * this.scaling;
+        // const { canvY: mouseY } = this._screenToCanvasCoordsAbsolute(
+        //   evt.offsetX,
+        //   evt.offsetY
+        // );
+        const deltaY = mouseY - startY;
+
+        this._moveOrigin(0, deltaY * (contentHeight / canvasHeight));
+        startY = mouseY;
+        this.render();
+      }
+    };
+
+    if (this.vertScrollbarVisible) {
+      // console.log("vertScrollbarVisible in mousemove");
+      // console.log({
+      //   canvasWidth: this.canvas.width,
+      // });
+      if (this.canvas.width - this.config.scrollbarThickness <= x_abs) {
+        // console.log("in zone");
+        // this.onmousedown = this._handleVertScrollStart.bind(this);
+        this.onmousedown = _handleVertScrollStart;
+        // window.onmousemove = this._handleVertScroll.bind(this);
+        window.onmousemove = _handleVertScroll;
+        window.onmouseup = () => {
+          window.onmousemove = null;
+          this._isDragging = false;
+          this.render();
+        };
+        return;
+      }
+    }
+
+    /****************** COLUMN RESIZE CODE **************************/
     const { canvX: x, canvY: y } = this._screenToCanvasCoords(
       evt.offsetX,
       evt.offsetY
@@ -169,16 +240,16 @@ class DataTable extends HTMLElement {
 
     // console.log(`x: ${x}, x_coords: ${x_coords}`);
 
-    let showScroll = false;
+    let showResize = false;
     let i;
     for (i = 1; i < x_coords.length; i++) {
       if (Math.abs(x - x_coords[i]) <= 5) {
-        showScroll = true;
+        showResize = true;
         break;
       }
     }
 
-    if (showScroll) {
+    if (showResize) {
       this.style.cursor = "ew-resize";
       this.onmousedown = this._handleResizeStart(i - 1).bind(this);
       window.onmousemove = this._handleResize.bind(this);
@@ -195,6 +266,9 @@ class DataTable extends HTMLElement {
   }
 
   _moveOrigin(x, y) {
+    const initialOffsetX = this.offsetX;
+    const initialOffsetY = this.offsetY;
+
     if (this.offsetX === undefined) {
       this.offsetX = 0;
     }
@@ -215,9 +289,15 @@ class DataTable extends HTMLElement {
       this.offsetY,
       0,
       this.cellInfo.y_coords[this.cellInfo.y_coords.length - 1] -
-        this.canvas.height
+        this.canvas.height +
+        (this.vertScrollbarVisible ? this.config.scrollbarThickness : 0)
     );
     this._scaleCanvas();
+
+    return {
+      x_moved: this.offsetX - initialOffsetX,
+      y_moved: this.offsetY - initialOffsetY,
+    };
   }
 
   _handleWheelEvent(evt) {
@@ -285,6 +365,7 @@ class DataTable extends HTMLElement {
   _render() {
     const canvas = this.canvas;
     const ctx = canvas.getContext("2d");
+    this.ctx = ctx;
 
     const { x_coords, y_coords } = this.cellInfo;
 
@@ -321,6 +402,7 @@ class DataTable extends HTMLElement {
     }
 
     this._drawHeaders();
+    this._drawScrollBars();
   }
 
   _drawHeaders() {
@@ -446,7 +528,7 @@ class DataTable extends HTMLElement {
   _drawCell(i, j, value, bold = false, header = false) {
     // console.log(`Drawing cell ${i}, ${j} with value ${value}`);
     const canvas = this.canvas;
-    const ctx = canvas.getContext("2d");
+    const ctx = this.ctx;
 
     const { widths, heights, x_coords, y_coords, headerHeight } = this.cellInfo;
 
@@ -486,21 +568,128 @@ class DataTable extends HTMLElement {
     ctx.restore();
   }
 
-  _screenToCanvasCoords(x, y) {
+  getContentDimensions() {
+    const { x_coords, y_coords } = this.cellInfo;
+    const contentHeight = y_coords[y_coords.length - 1];
+    const contentWidth = x_coords[x_coords.length - 1];
+
+    return {
+      contentWidth,
+      contentHeight,
+    };
+  }
+
+  // get the height of the vertical scroll bar.
+  getScrollbarHeight() {
+    const canvasHeight = this.canvas.height;
+    const { contentHeight } = this.getContentDimensions();
+
+    const scrollbarHeight = (canvasHeight / contentHeight) * canvasHeight;
+    return scrollbarHeight;
+  }
+
+  // get the width of the horizontal scroll bar.
+  getScrollbarWidth() {
+    const canvasWidth = this.canvas.width;
+    const { contentWidth } = this.getContentDimensions();
+
+    const scrollbarWidth = (canvasWidth / contentWidth) * canvasWidth;
+    return scrollbarWidth;
+  }
+
+  _drawScrollBars() {
     const ctx = this.canvas.getContext("2d");
-    // console.log(`ctx.getTransform(): ${ctx.getTransform()}`);
+    const canvasWidth = this.canvas.width;
+    const canvasHeight = this.canvas.height;
 
-    // console.log(`offsetX: ${this.offsetX}, offsetY: ${this.offsetY}`);
+    const { contentWidth, contentHeight } = this.getContentDimensions();
 
-    // console.log(this.scaling);
+    const scrollbarThickness = this.config.scrollbarThickness;
 
-    // default
+    const drawVertical = () => {
+      // console.log("drawing vertical");
+      if (contentHeight <= canvasHeight) {
+        this.vertScrollbarVisible = false;
+      }
+      // console.log({
+      //   contentHeight,
+      //   canvasHeight,
+      //   offsetY: this.offsetY,
+      // });
 
+      ctx.translate(this.offsetX, this.offsetY);
+
+      // draw the track
+      ctx.fillStyle = "lightgray";
+      ctx.fillRect(
+        canvasWidth - scrollbarThickness,
+        0,
+        scrollbarThickness,
+        canvasHeight
+      );
+
+      ctx.fillStyle = "gray";
+      ctx.fillRect(
+        canvasWidth - scrollbarThickness,
+        (this.offsetY / contentHeight) * canvasHeight,
+        scrollbarThickness,
+        this.getScrollbarHeight()
+      );
+
+      ctx.translate(-this.offsetX, -this.offsetY);
+
+      this.vertScrollbarVisible = true;
+    };
+
+    const drawHorizontal = () => {
+      // console.log("drawing horizontal");
+      if (contentWidth <= canvasWidth) return;
+      // console.log({
+      //   contentWidth,
+      //   canvasWidth,
+      //   offsetX: this.offsetX,
+      // });
+
+      ctx.translate(this.offsetX, this.offsetY);
+
+      // draw the track
+      ctx.fillStyle = "lightgray";
+      ctx.fillRect(
+        0,
+        canvasHeight - scrollbarThickness,
+        canvasWidth,
+        scrollbarThickness
+      );
+
+      const scrollbarWidth = (canvasWidth / contentWidth) * canvasWidth;
+      ctx.fillStyle = "gray";
+      ctx.fillRect(
+        (this.offsetX / contentWidth) * canvasWidth,
+        canvasHeight - scrollbarThickness,
+        this.getScrollbarWidth(),
+        scrollbarThickness
+      );
+
+      ctx.translate(-this.offsetX, -this.offsetY);
+    };
+
+    drawHorizontal();
+    drawVertical();
+  }
+
+  _screenToCanvasCoords(x, y) {
     return {
       // canvX: (x),
       // canvY: (y),
       canvX: x * this.defaultPixelRatio - 0.5 + this.offsetX,
       canvY: y * this.defaultPixelRatio - 0.5 + this.offsetY,
+    };
+  }
+
+  _screenToCanvasCoordsAbsolute(x, y) {
+    return {
+      canvX: x * this.defaultPixelRatio - 0.5,
+      canvY: y * this.defaultPixelRatio - 0.5,
     };
   }
 
