@@ -1,14 +1,13 @@
 BUGS
 
 Kind of becoming a mess -- refactor
-setCellInfo isn't always called before render -- this is because it's possible that only some fields are set in _cellInfo,
+setCellInfo isn't always called before render -- this is because it's possible that only some fields are set in \_cellInfo,
 so it's not fully initialized. Ensure setCellInfo is called before first render.
+Currently widths are set by modifying this.config -- this.config should be readonly though
 
 FIXED
 
 [x] Header doesn't extend to top of page -- some text peeks out above the header
-[x] Zoom bug -- changing zoom causes rendering to fail
-    - Always SCALE before TRANSLATING. (you want an affine transformation in terms of the offset + scale values)
-    - Use cursor to 
+[x] Zoom bug -- changing zoom causes rendering to fail - Always SCALE before TRANSLATING. (you want an affine transformation in terms of the offset + scale values) - Use cursor to
 [x] Mouse detection -- line detection is almost symmetrical around grid lines but not quite
 [x] Event handling for column resizing is also a little bit broken
