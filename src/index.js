@@ -6,7 +6,7 @@ function getType(variable) {
   if (variable === null) {
     return "null";
   } else if (variable === undefined) {
-    return 'undefined';
+    return "undefined";
   } else if (Array.isArray(variable)) {
     return "array";
   } else if (typeof variable === "object") {
@@ -184,7 +184,7 @@ class DataTable extends HTMLElement {
       window.onmousemove = this._handleResize.bind(this);
       window.onmouseup = () => {
         this._resizing = false;
-        this._moveOrigin(0,0);
+        this._moveOrigin(0, 0);
         this.render();
       };
     } else {
@@ -295,7 +295,6 @@ class DataTable extends HTMLElement {
       y_coords[y_coords.length - 1]
     );
 
-
     const headers = this.headers;
     const rows = this.rows;
 
@@ -307,18 +306,15 @@ class DataTable extends HTMLElement {
 
     const data = [...rows.map((row) => headers.map((header) => row[header]))];
 
-
     const rowColors = rows.map(this.getRowColors.bind(this));
-    for (let i = 0; i < data.length; i++) {      
-      this._drawRowBackground(i+1, rowColors[i]);
+    for (let i = 0; i < data.length; i++) {
+      this._drawRowBackground(i + 1, rowColors[i]);
     }
-
 
     this._drawGrid();
 
     for (let i = 0; i < data.length; i++) {
       for (let j = 0; j < data[i].length; j++) {
-        
         const value = data[i][j];
         this._drawCell(i + 1, j, value);
       }
@@ -434,13 +430,17 @@ class DataTable extends HTMLElement {
     const { x_coords, y_coords, headerHeight } = this.cellInfo;
 
     ctx.fillStyle = color;
-    ctx.fillRect(0, y_coords[i], x_coords[x_coords.length - 1], y_coords[i + 1]);
+    ctx.fillRect(
+      0,
+      y_coords[i],
+      x_coords[x_coords.length - 1],
+      y_coords[i + 1]
+    );
 
     // console.log(`Drawing row background for row ${i}`);
 
     // ctx.fillStyle = "white";
     // ctx.fillRect(0, y_coords[i], x_coords[x_coords.length - 1], y_coords[i + 1]);
-    
   }
 
   _drawCell(i, j, value, bold = false, header = false) {
@@ -506,11 +506,11 @@ class DataTable extends HTMLElement {
 
   getRowColors(row, i) {
     const type = getType(this.config.rowColors);
-    if (type === 'null' || type === 'undefined') {
+    if (type === "null" || type === "undefined") {
       return "white";
-    } else if (type === 'array') {
+    } else if (type === "array") {
       return this.config.rowColors[i % this.config.rowColors.length];
-    } else if (type === 'object') {
+    } else if (type === "object") {
       const key = Object.keys(this.config.rowColors)[0];
       if (!this.config.rowColors[key][row[key]]) {
         return "white";
@@ -518,8 +518,6 @@ class DataTable extends HTMLElement {
       const color = this.config.rowColors[key][row[key]];
       return color;
     }
-
-    
 
     // return i % 2 === 0 ? "white" : "whitesmoke";
   }
