@@ -324,6 +324,8 @@ class DataTable extends HTMLElement {
     );
     this._scaleCanvas();
 
+    this.dispatchScrollEvent();
+
     return {
       x_moved: this.offsetX - initialOffsetX,
       y_moved: this.offsetY - initialOffsetY,
@@ -732,6 +734,22 @@ class DataTable extends HTMLElement {
     }
 
     // return i % 2 === 0 ? "white" : "whitesmoke";
+  }
+
+  dispatchScrollEvent() {
+    const event = new CustomEvent("cdt-scroll", {
+      detail: {
+        scrollX: this.offsetX,
+        scrollY: this.offsetY,
+        canvasWidth: this.canvas.width,
+        canvasHeight: this.canvas.height,
+        scaling: this.scaling,
+      },
+      bubbles: true,
+      composed: true,
+    });
+
+    this.dispatchEvent(event);
   }
 
   // createHtml() {

@@ -126,6 +126,10 @@ async function main() {
   dataTable.render();
 
   console.log("Dataset loaded and displayed!");
+
+  document.addEventListener("cdt-scroll", (evt) => {
+    console.log(evt);
+  });
 }
 
 main();
