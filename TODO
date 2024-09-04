@@ -1,9 +1,12 @@
 BUGS
 
-Kind of becoming a mess -- refactor
-setCellInfo isn't always called before render -- this is because it's possible that only some fields are set in \_cellInfo,
-so it's not fully initialized. Ensure setCellInfo is called before first render.
-Currently widths are set by modifying this.config -- this.config should be readonly though
+- Kind of becoming a mess -- refactor
+- setCellInfo isn't always called before render -- this is because it's possible that only some fields are set in \_cellInfo,
+  so it's not fully initialized. Ensure setCellInfo is called before first render.
+- Currently widths are set by modifying this.config -- this.config should be readonly though
+- If you drag the scrollbar past the end of scrollable distance, when you move it back it takes your new position. When
+  it should really calculate based on the initial scroll position. The current behaviour is not what a user would expect.
+- Zooming of scrollbars is broken.
 
 FIXED
 

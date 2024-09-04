@@ -173,9 +173,9 @@ class DataTable extends HTMLElement {
     );
     // let isDragging = false;
     let startY;
-    let startOffsetY;
+    let startX;
 
-    const { contentHeight } = this.getContentDimensions();
+    const { contentWidth, contentHeight } = this.getContentDimensions();
 
     const _handleVertScrollStart = (evt) => {
       const canvasHeight = this.canvas.height;
@@ -189,10 +189,8 @@ class DataTable extends HTMLElement {
           (this.offsetY / contentHeight) * canvasHeight +
             this.getScrollbarHeight()
       ) {
-        console.log("within range");
         this._isDragging = true;
         startY = evt.screenY * this.scaling;
-        startOffsetY = this.offsetY;
       }
     };
 
@@ -200,10 +198,6 @@ class DataTable extends HTMLElement {
       if (this._isDragging) {
         const canvasHeight = this.canvas.height;
         const mouseY = evt.screenY * this.scaling;
-        // const { canvY: mouseY } = this._screenToCanvasCoordsAbsolute(
-        //   evt.offsetX,
-        //   evt.offsetY
-        // );
         const deltaY = mouseY - startY;
 
         this._moveOrigin(0, deltaY * (contentHeight / canvasHeight));
@@ -213,16 +207,51 @@ class DataTable extends HTMLElement {
     };
 
     if (this.vertScrollbarVisible) {
-      // console.log("vertScrollbarVisible in mousemove");
-      // console.log({
-      //   canvasWidth: this.canvas.width,
-      // });
       if (this.canvas.width - this.config.scrollbarThickness <= x_abs) {
-        // console.log("in zone");
-        // this.onmousedown = this._handleVertScrollStart.bind(this);
         this.onmousedown = _handleVertScrollStart;
-        // window.onmousemove = this._handleVertScroll.bind(this);
         window.onmousemove = _handleVertScroll;
+        window.onmouseup = () => {
+          window.onmousemove = null;
+          this._isDragging = false;
+          this.render();
+        };
+        return;
+      }
+    }
+
+    const _handleHorScrollStart = (evt) => {
+      const canvasWidth = this.canvas.width;
+      const { canvX: mouseX } = this._screenToCanvasCoordsAbsolute(
+        evt.offsetX,
+        evt.offsetY
+      );
+      if (
+        mouseX >= (this.offsetX / contentWidth) * canvasWidth &&
+        mouseX <=
+          (this.offsetX / contentWidth) * canvasWidth + this.getScrollbarWidth()
+      ) {
+        this._isDragging = true;
+        startX = evt.screenX * this.scaling;
+        startOffsetX = this.offsetX;
+      }
+    };
+
+    const _handleHorScroll = (evt) => {
+      if (this._isDragging) {
+        const canvasWidth = this.canvas.width;
+        const mouseX = evt.screenX * this.scaling;
+        const deltaX = mouseX - startX;
+
+        this._moveOrigin(deltaX * (contentWidth / canvasWidth), 0);
+        startX = mouseX;
+        this.render();
+      }
+    };
+
+    if (this.horScrollbarVisible) {
+      if (this.canvas.height - this.config.scrollbarThickness <= y_abs) {
+        this.onmousedown = _handleHorScrollStart;
+        window.onmousemove = _handleHorScroll;
         window.onmouseup = () => {
           window.onmousemove = null;
           this._isDragging = false;
@@ -283,7 +312,8 @@ class DataTable extends HTMLElement {
       this.offsetX,
       0,
       this.cellInfo.x_coords[this.cellInfo.x_coords.length - 1] -
-        this.canvas.width
+        this.canvas.width +
+        (this.horScrollbarVisible ? this.config.scrollbarThickness : 0)
     );
     this.offsetY = clamp(
       this.offsetY,
@@ -607,16 +637,10 @@ class DataTable extends HTMLElement {
     const scrollbarThickness = this.config.scrollbarThickness;
 
     const drawVertical = () => {
-      // console.log("drawing vertical");
       if (contentHeight <= canvasHeight) {
         this.vertScrollbarVisible = false;
+        return;
       }
-      // console.log({
-      //   contentHeight,
-      //   canvasHeight,
-      //   offsetY: this.offsetY,
-      // });
-
       ctx.translate(this.offsetX, this.offsetY);
 
       // draw the track
@@ -642,13 +666,10 @@ class DataTable extends HTMLElement {
     };
 
     const drawHorizontal = () => {
-      // console.log("drawing horizontal");
-      if (contentWidth <= canvasWidth) return;
-      // console.log({
-      //   contentWidth,
-      //   canvasWidth,
-      //   offsetX: this.offsetX,
-      // });
+      if (contentWidth <= canvasWidth) {
+        this.horScrollbarVisible = false;
+        return;
+      }
 
       ctx.translate(this.offsetX, this.offsetY);
 
@@ -671,6 +692,8 @@ class DataTable extends HTMLElement {
       );
 
       ctx.translate(-this.offsetX, -this.offsetY);
+
+      this.horScrollbarVisible = true;
     };
 
     drawHorizontal();
