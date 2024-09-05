@@ -166,7 +166,6 @@ class DataTable extends HTMLElement {
     const { x_coords, headerHeight } = this.cellInfo;
 
     /******************* SCROLL BAR CODE ****************************/
-
     const { canvX: x_abs, canvY: y_abs } = this._screenToCanvasCoordsAbsolute(
       evt.offsetX,
       evt.offsetY
@@ -232,7 +231,6 @@ class DataTable extends HTMLElement {
       ) {
         this._isDragging = true;
         startX = evt.screenX * this.scaling;
-        startOffsetX = this.offsetX;
       }
     };
 
