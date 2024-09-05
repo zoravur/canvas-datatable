@@ -83,7 +83,7 @@ async function main() {
 
   console.log("Loading and parsing the dataset...");
 
-  const datasetUrl = "./demo/assets/titanic.csv";
+  const datasetUrl = "./assets/titanic.csv";
 
   const dataset = await loadAndParseDataset(datasetUrl);
 
@@ -123,13 +123,28 @@ async function main() {
     scrollbarThickness: 20,
   };
 
-  dataTable.render();
+  // dataTable.render();
 
   console.log("Dataset loaded and displayed!");
 
-  document.addEventListener("cdt-scroll", (evt) => {
-    console.log(evt);
-  });
+  const container = document.querySelector("#container");
+
+  new ResizeObserver((entries) => {
+    for (let entry of entries) {
+      if (entry.target === container) {
+        // console.log(entry.target.getBoundingClientRect());
+        // console.log(entry);
+        // dataTable.setAttribute("width", entry.contentBoxSize[0].inlineSize);
+        // dataTable.setAttribute("height", entry.contentBoxSize[0].blockSize);
+        // dataTable._scaleCanvas();
+        // dataTable.render();
+      }
+    }
+  }).observe(container);
+
+  // document.querySelector("#container").addEventListener("resize", (evt) => {
+  //   console.log(evt);
+  // });
 }
 
 main();

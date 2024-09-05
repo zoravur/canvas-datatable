@@ -1,5 +1,8 @@
 function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
+  if (max < min) {
+    console.warn("clamping to empty range, taking minimum");
+  }
+  return Math.max(Math.min(value, max), min);
 }
 
 function getType(variable) {
@@ -66,9 +69,11 @@ class DataTable extends HTMLElement {
             display: inline-block;
             white-space: nowrap;
             font-size: 0;
-            width: auto;
-            vertical-align: top; /* or bottom or middle depending on your needs */
+            // width: auto;
+            // vertical-align: top; /* or bottom or middle depending on your needs */
             position: relative;
+            // width: 100px;
+            // height: 100%;
           }
 
           .grid-container {
@@ -84,6 +89,23 @@ class DataTable extends HTMLElement {
           <canvas id="canvas"></canvas>
         </div>
     `;
+
+    const dataTableRoot = this.shadowRoot.querySelector(".data-table-root");
+
+    new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        if (entry.target === dataTableRoot) {
+          // console.log(entry.target.getBoundingClientRect());
+          // console.log(entry);
+          // dataTable.setAttribute("width", entry.contentBoxSize[0].inlineSize);
+          // dataTable.setAttribute("height", entry.contentBoxSize[0].blockSize);\
+          this._width = entry.contentBoxSize[0].inlineSize;
+          this._height = entry.contentBoxSize[0].blockSize;
+          this._scaleCanvas();
+          this.render();
+        }
+      }
+    }).observe(dataTableRoot);
 
     this.offsetX = 0;
     this.offsetY = 0;
@@ -122,7 +144,52 @@ class DataTable extends HTMLElement {
     this.canvas.addEventListener("wheel", this._handleWheelEvent.bind(this));
 
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
+
+    this.mergeStyles();
   }
+
+  /**********************CLAUDE CODE */
+  mergeStyles() {
+    const root = this.shadowRoot.querySelector(".data-table-root");
+
+    // Get styles from the web component's attribute
+    const componentStyles = this.getAttribute("style") || "";
+
+    // Get existing styles from the root DOM node
+    const rootStyles = root.getAttribute("style") || "";
+
+    // Merge styles
+    const mergedStyles = this.combineStyles(componentStyles, rootStyles);
+
+    console.log("merged styles: ", mergedStyles);
+
+    // Apply merged styles to the root DOM node
+    root.setAttribute("style", mergedStyles);
+  }
+
+  combineStyles(styles1, styles2) {
+    const styleMap = new Map();
+
+    // Helper function to parse styles into a Map
+    const parseStyles = (styles) => {
+      styles.split(";").forEach((style) => {
+        const [property, value] = style.split(":").map((s) => s.trim());
+        if (property && value) {
+          styleMap.set(property, value);
+        }
+      });
+    };
+
+    // Parse both style strings
+    parseStyles(styles1);
+    parseStyles(styles2);
+
+    // Convert the Map back to a style string
+    return Array.from(styleMap.entries())
+      .map(([property, value]) => `${property}: ${value}`)
+      .join("; ");
+  }
+  /******************** END CLAUDE CODE */
 
   _handleResizeStart = (index) => (e) => {
     this._initialResizeX = this._screenToCanvasCoords(
@@ -309,16 +376,22 @@ class DataTable extends HTMLElement {
     this.offsetX = clamp(
       this.offsetX,
       0,
-      this.cellInfo.x_coords[this.cellInfo.x_coords.length - 1] -
-        this.canvas.width +
-        (this.horScrollbarVisible ? this.config.scrollbarThickness : 0)
+      Math.max(
+        this.cellInfo.x_coords[this.cellInfo.x_coords.length - 1] -
+          this.canvas.width +
+          (this.horScrollbarVisible ? this.config.scrollbarThickness : 0),
+        0
+      )
     );
     this.offsetY = clamp(
       this.offsetY,
       0,
-      this.cellInfo.y_coords[this.cellInfo.y_coords.length - 1] -
-        this.canvas.height +
-        (this.vertScrollbarVisible ? this.config.scrollbarThickness : 0)
+      Math.max(
+        this.cellInfo.y_coords[this.cellInfo.y_coords.length - 1] -
+          this.canvas.height +
+          (this.vertScrollbarVisible ? this.config.scrollbarThickness : 0),
+        0
+      )
     );
     this._scaleCanvas();
 
@@ -355,11 +428,11 @@ class DataTable extends HTMLElement {
     this.scaling = window.devicePixelRatio || 1;
     const scaling = this.scaling;
     const canvas = this.canvas;
-    canvas.width = Number(this.getAttribute("width")) * scaling;
-    canvas.height = Number(this.getAttribute("height")) * scaling;
+    canvas.width = this._width * scaling; // Number(this.getAttribute("width")) * scaling;
+    canvas.height = this._height * scaling; // Number(this.getAttribute("height")) * scaling;
 
-    this.container.style.width = canvas.width / scaling + "px";
-    this.container.style.height = canvas.height / scaling + "px";
+    // this.container.style.width = canvas.width / scaling + "px";
+    // this.container.style.height = canvas.height / scaling + "px";
 
     canvas.style.width = "100%";
     canvas.style.height = "100%";
