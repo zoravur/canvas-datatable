@@ -5,6 +5,31 @@ function clamp(value, min, max) {
   return Math.max(Math.min(value, max), min);
 }
 
+function getlowestfraction(x0) {
+  var eps = 1.0e-15;
+  var h, h1, h2, k, k1, k2, a, x;
+
+  x = x0;
+  a = Math.floor(x);
+  h1 = 1;
+  k1 = 0;
+  h = a;
+  k = 1;
+
+  while (x - a > eps * k * k) {
+    x = 1 / (x - a);
+    a = Math.floor(x);
+    h2 = h1;
+    h1 = h;
+    k2 = k1;
+    k1 = k;
+    h = h2 + a * h1;
+    k = k2 + a * k1;
+  }
+
+  return { num: h, denom: k };
+}
+
 function getType(variable) {
   if (variable === null) {
     return "null";
@@ -99,8 +124,11 @@ class DataTable extends HTMLElement {
           // console.log(entry);
           // dataTable.setAttribute("width", entry.contentBoxSize[0].inlineSize);
           // dataTable.setAttribute("height", entry.contentBoxSize[0].blockSize);\
+
           this._width = entry.contentBoxSize[0].inlineSize;
           this._height = entry.contentBoxSize[0].blockSize;
+
+          // console.log(this._width, this._height, this.scaling);
           this._scaleCanvas();
           this.render();
         }
@@ -272,7 +300,7 @@ class DataTable extends HTMLElement {
       }
     };
 
-    if (this.vertScrollbarVisible) {
+    if (this.vertScrollbarVisible && !this._resizing) {
       if (this.canvas.width - this.config.scrollbarThickness <= x_abs) {
         this.onmousedown = _handleVertScrollStart;
         window.onmousemove = _handleVertScroll;
@@ -427,15 +455,20 @@ class DataTable extends HTMLElement {
 
     this.scaling = window.devicePixelRatio || 1;
     const scaling = this.scaling;
+    const { num, denom } = getlowestfraction(scaling);
+
     const canvas = this.canvas;
-    canvas.width = this._width * scaling; // Number(this.getAttribute("width")) * scaling;
-    canvas.height = this._height * scaling; // Number(this.getAttribute("height")) * scaling;
+    canvas.width = Math.ceil(this._width / denom) * num; // Number(this.getAttribute("width")) * scaling;
+    canvas.height = Math.ceil(this._height / denom) * num; // Number(this.getAttribute("height")) * scaling;
 
     // this.container.style.width = canvas.width / scaling + "px";
     // this.container.style.height = canvas.height / scaling + "px";
 
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
+    // canvas.style.width = "100%";
+    // canvas.style.height = "100%";
+    // console.log(this._width, this._height);
+    canvas.style.width = Math.ceil(this._width / denom) * denom + "px";
+    canvas.style.height = Math.ceil(this._height / denom) * denom + "px";
 
     const ctx = canvas.getContext("2d");
     ctx.resetTransform();
